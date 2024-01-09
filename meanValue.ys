@@ -1,0 +1,16 @@
+main:
+    irmovq $1, %rbx         # rbx = 1
+loop:
+    popq %rdx               # Pop value from stack to rdx
+    andq %rdx, %rdx         # Check if rdx is 0
+    je subLoop              # If (rdx = 0) jump to subLoop
+    addq %rdx, %rdi         # rdi += rdx
+    addq %rbx, %rsi         # rsi += rbx
+    jmp loop                # Jump back to loop
+subLoop:                    
+    addq %rbx, %rax         # rax += rbx
+    subq %rsi, %rdi         # rdi =- rsi
+test:
+    jge subLoop             # Jump to subLoop if rdi >= 0
+    subq %rbx, %rax         # Floor the result
+    halt

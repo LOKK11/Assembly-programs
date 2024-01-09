@@ -1,0 +1,23 @@
+main:
+    irmovq stack, %rbp      # Initialize stack
+    irmovq stack, %rsp      # Stack pointer
+    call lengthfinder
+    halt                    
+lengthfinder:
+    irmovq $1, %rbx         # Constant to add to rax
+    irmovq $8, %rcx         # Constant to add to rdi
+    irmovq $0x3f8, %rdi     # Initialize memory location to rdi
+    xorq %rax, %rax         # rax = 0
+    andq %rbx, %rbx         # disable flags
+loop:                        
+    addq %rcx, %rdi         # Add 8 to rdi
+    addq %rbx, %rax         # Add 1 to rax
+    mrmovq (%rdi), %rdx     # rdx = value from memory location rdi
+    andq %rdx, %rdx         # Test if rdx is 0
+test:
+    jne loop                # Jump to loop if rdx != 0
+    subq %rbx, %rax         # rax =- 1
+    ret
+.pos 0x200                  
+stack:
+    

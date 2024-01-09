@@ -1,0 +1,23 @@
+#.pos 0
+#    irmovq $28, %rdi        # Minuend
+#    irmovq $2, %rsi         # Subtrahend
+main:
+    irmovq stack, %rbp      # Initialize stack
+    irmovq stack, %rsp      # Stack pointer
+    call subtraction        # Call the subtraction subprogram
+    halt                    # End of code
+subtraction:
+    irmovq $1, %rbx         # Constant to add to rax
+    xorq %rax, %rax         # rax = 0
+    andq %rsi, %rsi         # disable flags
+    jmp test
+loop:                       # while (rdi >= 0)
+    addq %rbx, %rax         # rax += 1
+    subq %rsi, %rdi         # rdi =- rsi
+test:
+    jge loop                # Jump to loop if rdi >= 0
+    subq %rbx, %rax         # Floor the result
+    ret
+.pos 0x200                  # Memory location for stack
+stack:
+    

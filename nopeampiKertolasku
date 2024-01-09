@@ -1,0 +1,173 @@
+main:
+    andq %r11, %r11
+    je nolla
+    andq %r12, %r12
+    jne eiNolla
+nolla:
+    irmovq $0, %rax
+    halt
+    
+eiNolla:
+    irmovq stack, %rbp
+    irmovq stack, %rsp     
+    irmovq $0, %rax
+    rrmovq %r11, %rdi
+    call isoinBitti       
+    rrmovq %r11, %rdi
+    rrmovq %r11, %rbx
+    irmovq $0, %rcx
+r11loop:
+    andq %rbx, %rbx
+    je r11break
+    call jakolasku
+
+    andq %rdi, %rdi
+    je r11skip
+    addq %r9, %rcx       
+    rrmovq %rsi, %rdi
+    call laskeNollat
+    pushq %rdi
+    subq %rsi, %rbx
+r11skip:
+    rrmovq %rsi, %rdi
+    call bittiVasemmalle
+    rrmovq %rbx, %rdi
+    jmp r11loop
+r11break:
+
+# Aloitetaan r12 käsittely    
+    rrmovq %r12, %rdi
+    call isoinBitti     
+    rrmovq %r12, %rdi
+    rrmovq %r12, %rbx
+    irmovq $0, %rdx
+r12loop:
+    andq %rbx, %rbx
+    je r12break
+    call jakolasku
+
+    andq %rdi, %rdi
+    je r12skip
+    addq %r9, %rdx         
+    rrmovq %rsi, %rdi
+    call laskeNollat
+    pushq %rdi
+    subq %rsi, %rbx
+r12skip:
+    rrmovq %rsi, %rdi
+    call bittiVasemmalle
+    rrmovq %rbx, %rdi
+    jmp r12loop
+r12break:
+
+# Aloitetaan kertominen, kun haluttu data on kerätty
+    subq %rcx, %rdx
+    jle rdx
+    addq %rcx, %rdx
+    irmovq $1, %r8
+    rrmovq %rdx, %r9
+    rrmovq %rcx, %rdx
+popLoop:
+    popq %rax            
+    subq %r8, %r9
+    jne popLoop
+    irmovq $0, %rax
+    jmp rcx
+rdx:
+    addq %rcx, %rdx
+    rrmovq %r11, %rbx
+    irmovq $1, %r8
+    jmp summaaminen
+rcx: 
+    rrmovq %r12, %rbx
+    irmovq $1, %r8
+    jmp summaaminen
+summaaminen:
+    rrmovq %rbx, %rdi
+    popq %rsi
+    call siirraVasemmalle
+    addq %rdi, %rax
+    subq %r8, %rdx
+    jne summaaminen
+    halt
+    
+    
+jakolasku:
+    irmovq $0, %r8
+    irmovq $1, %r9
+sLoop:
+    subq %rsi, %rdi
+    jl sBreak
+    addq %r9, %r8
+    jmp sLoop
+sBreak:
+    rrmovq %r8, %rdi
+    ret
+    
+bittiVasemmalle:
+    irmovq $1, %r8
+    irmovq $0, %rsi
+bLoop:
+    subq %r8, %rdi
+    jle bBreak
+    addq %r8, %rdi
+    rrmovq %r8, %rsi
+    addq %r8, %r8
+    jmp bLoop    
+bBreak:
+    ret
+
+laskeNollat:
+    irmovq $0x2000, %r8
+    irmovq $0, %r9
+    irmovq $1, %r10
+    subq %r8, %rdi
+    jg lnBig
+    addq %r8, %rdi
+    irmovq $1, %r8
+    jmp lnLoop
+lnBig:
+    addq %r8, %rdi
+    irmovq $12, %r9
+lnLoop:
+    subq %r8, %rdi
+    jle lnBreak
+    addq %r8, %rdi
+    addq %r10, %r9
+    addq %r8, %r8
+    jmp lnLoop
+lnBreak:
+    rrmovq %r9, %rdi
+    ret
+
+isoinBitti:
+    irmovq $0x2000, %r8
+    irmovq $0, %rsi
+    subq %r8, %rdi
+    jge isoBig
+    addq %r8, %rdi
+    irmovq $1, %r8
+    jmp isoLoop
+isoBig:
+    addq %r8, %rdi    
+isoLoop:
+    subq %r8, %rdi
+    jl isoBreak
+    addq %r8, %rdi
+    rrmovq %r8, %rsi
+    addq %r8, %r8
+    jmp isoLoop    
+isoBreak:
+    ret
+    
+siirraVasemmalle:
+    subq %r8, %rsi
+    jl svBreak
+    addq %rdi, %rdi
+    jmp siirraVasemmalle
+svBreak:
+    ret
+    
+    
+.pos 0x400
+stack:

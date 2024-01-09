@@ -1,0 +1,172 @@
+main:
+    andq %r11, %r11
+    je zero
+    andq %r12, %r12
+    jne notZeros
+zero:
+    irmovq $0, %rax
+    halt
+    
+notZeros:
+    irmovq stack, %rbp      # Initialize stack
+    irmovq stack, %rsp      # Stack pointer
+    irmovq $0, %rax
+    rrmovq %r11, %rdi
+    call biggestBit         # rsi = biggest 2^n value under
+    rrmovq %r11, %rdi
+    rrmovq %r11, %rbx
+    irmovq $0, %rcx
+r11loop:
+    andq %rbx, %rbx
+    je r11break
+    call subtract
+    andq %rdi, %rdi
+    je r11skip
+    addq %r9, %rcx          # rcx = r11 termien määrä
+    rrmovq %rsi, %rdi
+    call countZeros
+    pushq %rdi
+    subq %rsi, %rbx
+r11skip:
+    rrmovq %rsi, %rdi
+    call bitToRight
+    rrmovq %rbx, %rdi
+    jmp r11loop
+r11break:
+
+# Start handling r12    
+    rrmovq %r12, %rdi
+    call biggestBit         # rsi = biggest 2^n value under
+    rrmovq %r12, %rdi
+    rrmovq %r12, %rbx
+    irmovq $0, %rdx
+r12loop:
+    andq %rbx, %rbx
+    je r12break
+    call subtract
+    andq %rdi, %rdi
+    je r12skip
+    addq %r9, %rdx          # rdx = r12 termien määrä
+    rrmovq %rsi, %rdi
+    call countZeros
+    pushq %rdi
+    subq %rsi, %rbx
+r12skip:
+    rrmovq %rsi, %rdi
+    call bitToRight
+    rrmovq %rbx, %rdi
+    jmp r12loop
+r12break:
+
+# Start the multiplying process now that wanted data is collected
+    subq %rcx, %rdx
+    jle rdx
+    addq %rcx, %rdx
+    irmovq $1, %r8
+    rrmovq %rdx, %r9
+    rrmovq %rcx, %rdx
+popLoop:
+    popq %rax               # Pop to abyss.
+    subq %r8, %r9
+    jne popLoop
+    irmovq $0, %rax
+    jmp rcx
+rdx:
+    addq %rcx, %rdx
+    rrmovq %r11, %rbx
+    irmovq $1, %r8
+    jmp addition
+rcx: 
+    rrmovq %r12, %rbx
+    irmovq $1, %r8
+    jmp addition
+addition:
+    rrmovq %rbx, %rdi
+    popq %rsi
+    call moveToLeft
+    addq %rdi, %rax
+    subq %r8, %rdx
+    jne addition
+    halt
+    
+    
+# SUBPROGRAMS
+subtract:
+    irmovq $0, %r8
+    irmovq $1, %r9
+sLoop:
+    subq %rsi, %rdi
+    jl sBreak
+    addq %r9, %r8
+    jmp sLoop
+sBreak:
+    rrmovq %r8, %rdi
+    ret
+    
+bitToRight:
+    irmovq $1, %r8
+    irmovq $0, %rsi
+bLoop:
+    subq %r8, %rdi
+    jle bBreak
+    addq %r8, %rdi
+    rrmovq %r8, %rsi
+    addq %r8, %r8
+    jmp bLoop    
+bBreak:
+    ret
+    
+biggestBit:
+    irmovq $0x1000, %r8
+    irmovq $0, %rsi
+    subq %r8, %rdi
+    jge bigBig
+    addq %r8, %rdi
+    irmovq $1, %r8
+    jmp bigLoop
+bigBig:
+    addq %r8, %rdi    
+bigLoop:
+    subq %r8, %rdi
+    jl bigBreak
+    addq %r8, %rdi
+    rrmovq %r8, %rsi
+    addq %r8, %r8
+    jmp bigLoop    
+bigBreak:
+    ret
+    
+countZeros:
+    irmovq $0x1000, %r8
+    irmovq $0, %r9
+    irmovq $1, %r10
+    subq %r8, %rdi
+    jg czBig
+    addq %r8, %rdi
+    irmovq $1, %r8
+    jmp czLoop
+czBig:
+    addq %r8, %rdi
+    irmovq $12, %r9
+czLoop:
+    subq %r8, %rdi
+    jle czBreak
+    addq %r8, %rdi
+    addq %r10, %r9
+    addq %r8, %r8
+    jmp czLoop
+czBreak:
+    rrmovq %r9, %rdi
+    ret
+    
+moveToLeft:
+    subq %r8, %rsi
+    jl mtlBreak
+    addq %rdi, %rdi
+    jmp moveToLeft
+mtlBreak:
+    ret
+    
+    
+.pos 0x400
+stack:

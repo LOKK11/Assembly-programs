@@ -1,0 +1,115 @@
+main:
+    irmovq $0, %rcx
+    irmovq stack, %rbp      # Initialize stack
+    irmovq stack, %rsp      # Stack pointer
+    irmovq $0x1, %rax
+    irmovq $0x1, %rdi
+    irmovq $4, %rsi
+loop: 
+    subq %r12, %rdi
+    jg loop2
+    addq %r12, %rdi
+    rrmovq %rdi, %rax
+    call multiply
+    irmovq $4, %rsi
+    jmp loop
+loop2:
+    irmovq $0, %rdx
+    rrmovq %rcx, %rbx
+    addq %rax, %rbx
+    subq %rbx, %r12
+    jl else
+    subq %rbx, %r12
+    rrmovq %rax, %rdx
+else:
+    addq %rbx, %r12
+    rrmovq %rcx, %rdi
+    irmovq $0x200, %rsi
+    irmovq $0x100, %r10
+    call subtractDeluxe
+    jne skip
+    irmovq $0x80, %r9
+    addq %r9, %rdx
+skip:
+    rrmovq %rdi, %rsi
+    irmovq $0x100, %rdi
+    call multiply
+    addq %rdi, %rdx
+    irmovq $0x100, %rsi
+    rrmovq %rcx, %rdi
+    call subtract
+    rrmovq %rdi, %rsi
+    irmovq $0x100, %rdi
+    call multiply
+    subq %rdi, %rcx
+    rrmovq %rcx, %rdi
+    irmovq $2, %rsi
+    call subtract
+    addq %rdi, %rdx
+    rrmovq %rdx, %rcx
+    irmovq $0x1, %rdi
+    irmovq $4, %rsi
+    irmovq $3, %r9
+    subq %r9, %rax
+    jle finish
+    addq %r9, %rax
+    rrmovq %rax, %rbx
+loop3: 
+    subq %rbx, %rdi
+    je loop2
+    addq %rbx, %rdi
+    rrmovq %rdi, %rax
+    call multiply
+    irmovq $4, %rsi
+    jmp loop3
+finish:
+    halt
+
+multiply:
+    andq %rsi, %rsi
+    je zero
+    irmovq $0, %r8
+    irmovq $1, %r9
+mLoop:
+    addq %rdi, %r8
+    subq %r9, %rsi
+    jne mLoop
+    rrmovq %r8, %rdi
+    ret
+zero:
+    irmovq $0, %rdi
+    ret
+
+subtract:
+    irmovq $0, %r8
+sLoop:
+    subq %rsi, %rdi
+    jl sBreak
+    irmovq $1, %r9
+    addq %r9, %r8
+    jmp sLoop
+sBreak:
+    rrmovq %r8, %rdi
+    ret
+
+subtractDeluxe:
+    irmovq $0, %r8
+    irmovq $1, %r9
+sdLoop:
+    subq %r10, %rdi
+    jl eBreak
+    addq %r10, %rdi
+    subq %rsi, %rdi
+    jl lBreak
+    addq %r9, %r8
+    jmp sdLoop
+lBreak:
+    rrmovq %r8, %rdi
+    xorq %rsi, %rsi
+    ret
+eBreak:
+    rrmovq %r8, %rdi
+    ret
+
+.pos 0x400
+stack:

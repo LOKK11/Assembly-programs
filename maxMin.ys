@@ -1,0 +1,26 @@
+main:
+    popq %rax
+    andq %rax, %rax
+    je finish
+    rrmovq %rax, %rsi
+    rrmovq %rax, %rdi
+loop:
+    popq %rax
+    andq %rax, %rax
+    je finish
+    subq %rax, %rsi
+    cmovg %rax, %rsi
+    jle notSmaller
+loop2:
+    subq %rax, %rdi
+    cmovl %rax, %rdi
+    jge notBigger
+    jmp loop
+notSmaller:
+    addq %rax, %rsi 
+    jmp loop2
+notBigger:
+    addq %rax, %rdi 
+    jmp loop
+finish:
+    halt

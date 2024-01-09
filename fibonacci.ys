@@ -1,0 +1,316 @@
+# FIBONACCI NUMBER CHECKER BY OSSI MYLLYMÄKI
+# Student number: Y68710339
+# This assembly program checks if a number is a fibonacci number 
+
+# Input can be something like this.
+# .pos 0
+# irmovq array,%r11
+# irmovq $1, %r12
+# rmmovq %r12, (%r11)
+# irmovq $2, %r12
+# rmmovq %r12, 8(%r11)
+# irmovq $3, %r12
+# rmmovq %r12, 16(%r11)
+# irmovq $5, %r12
+# rmmovq %r12, 24(%r11)
+# irmovq $8, %r12
+# rmmovq %r12, 32(%r11)
+
+# If all the given numbers are fibonacci numbers, rax is set to 0.
+# If a number is not a fibonacci number, rax = that number.
+
+# This program works relatively fast with numbers as high as 10,000,000.
+
+# For example with this input running the program took 8.5 seconds on my laptop 
+# The program returned 10000000, because the first one is a fibonacci number
+# irmovq array,%r11
+# irmovq $9227465, %r12
+# rmmovq %r12, (%r11)
+# irmovq $10000000, %r12
+# rmmovq %r12, 8(%r11)
+
+# For an input of 1000 the program took about 13500 commands. (Measured using y86-64 simulator and 
+# pressing step-button with automatic clicker 1000 presses at a time)
+
+# Some other inputs and amount of commands
+# 100,000 - 50,000
+# 987 (fibonacci number) - 12500
+# 100 - 8200
+# 10 - 2800
+# 1 - 300
+
+# As we can see the program is relatively faster with big numbers. And that's because
+# most of the loops in the program use exponential increments instead of linear. For example
+# countZeros, biggestBit and bitToRight all use the same method. And those loops are the points
+# where the program takes the longest.
+
+# Some optimizations could be made. For example starting looping from bigger value like 0x1000
+# if the number is big. I use that in some subprograms but not in all. Also the multiply-subprogram
+# could be optimized a bit for the cases where it is used to multiply by 4. Instead of 
+# x + x + x + x (3 operations) I could use x = (x + x) ^ 2 (2 operations). 
+
+
+main:
+    mrmovq (%r11), %r12     # First element from array to r12
+    irmovq stack, %rbp      # Initialize stack
+    irmovq stack, %rsp      # Stack pointer
+loop: 
+    andq %r12, %r12         # Check if r12 is zero
+    je isZero
+    call isFibonacci
+    andq %r12, %r12
+    jne notFibonacci
+    irmovq $8, %r14         # Constant for increasing r11 pointer
+    addq %r14, %r11         # Make r11 point to next memory slot on array, by adding 8 to it
+    mrmovq (%r11), %r12     # Receive next element from array and place it to r12
+    jmp loop                # Jump back to start
+    
+isZero:                     # If r12 was 0 in the beginning, return rax = 0
+    irmovq $0, %rax
+    halt
+    
+notFibonacci:               # If r12 was not 0 after isFibonacci, return the value of r12
+    rrmovq %r12, %rax
+    halt
+    
+    
+    
+    
+# SUBPROGRAMS
+
+# Subprogram that checks if a number is a fibonacci number using a certain algorithm.
+# If number is a fibonacci number, r12 is set to 0
+# If number is not a fibonacci number, r12 gets the value of the checked number
+isFibonacci:
+    call fastMultiply       # Call the multiplying Subprogram (r12 * r12)
+    irmovq $5, %rsi         
+    rrmovq %rax, %rdi       
+    call multiply           # rdi = 5 * r12 * r12
+    irmovq $4, %rsi
+    subq %rsi, %rdi         # rdi = 5 * r12 * r12 - 4
+    rrmovq %r12, %r14
+    rrmovq %rdi, %r12
+    call perfectSquare      # Check if r12 is a perfect square
+    andq %r12, %r12
+    je fibTrue              # If number was a perfect square jump to fibTrue 
+    irmovq $8, %rsi
+    addq %rsi, %r12         # rdi = 5 * r12 * r12 + 4
+    call perfectSquare
+    andq %r12, %r12
+    je fibTrue
+    rrmovq %r14, %r12       # Number was not a fibonacci number, r12 is set back to its start value
+    ret
+    
+fibTrue:
+    ret
+
+# Subprogram that multiplies r12 * r12
+fastMultiply:
+    andq %r12, %r12
+    jne notZero
+    ret                     # If r12 = 0, return 0
+    
+notZero:
+    irmovq $0, %rax
+    rrmovq %r12, %rdi
+    call biggestBit         # rsi = biggest 2^n value lower or equal to rdi
+    rrmovq %r12, %rdi
+    rrmovq %r12, %rbx       # rbx is a helper value
+    irmovq $0, %rdx
+    irmovq $1, %r9
+r12loop:                    # while (rbx != 0)
+    andq %rbx, %rbx         
+    je r12break
+    call subtract           # Checks if a bit is 1 or 0 starting from biggest bit
+    andq %rdi, %rdi
+    je r12skip              # Skip if was 0
+    addq %r9, %rdx          # rdx = number of 1 bits in r12
+    rrmovq %rsi, %rdi
+    call countZeros         # Counts how many bits is behind the 1 bit
+    pushq %rdi              # Push the number of bits to the stack
+    subq %rsi, %rbx         # Remove the msb from rbx
+r12skip:
+    rrmovq %rsi, %rdi       
+    call bitToRight         # Moves the msb one bit to right
+    rrmovq %rbx, %rdi
+    jmp r12loop
+r12break:
+
+# Start the multiplying process now that wanted data is collected
+    irmovq $1, %r8
+    rrmovq %r12, %rbx       # Original r12 value to rbx
+addition:                   # while (r9 > 0)
+    rrmovq %rbx, %rdi       # 
+    popq %rsi               # Pop the number of bits (from r12loop) from stack to rsi
+    call moveToLeft         # rdi = rdi * 2 ^ rsi
+    addq %rdi, %rax         # rax = result of multiplication
+    subq %r8, %rdx
+    jne addition
+    ret
+    
+# Subprogram that calculates the square root of r12 and checks if it is a perfect square
+perfectSquare:              
+    irmovq $1, %rax
+    irmovq $0, %rcx
+    irmovq $1, %rdi
+    irmovq $4, %rsi
+    rrmovq %r12, %r13       # Save the value of r12 to r13 for later use
+psLoop:                     # while (rdi =< r12)
+    subq %r12, %rdi
+    jg loop2
+    addq %r12, %rdi
+    rrmovq %rdi, %rax       # rax = biggest 4^n value under or equal to r12
+    call multiply
+    irmovq $4, %rsi
+    jmp psLoop
+loop2:                      # Loop used in algorithm that solves the square root of a number
+    irmovq $0, %rdx
+    rrmovq %rcx, %rbx
+    addq %rax, %rbx
+    subq %rbx, %r12
+    jl else
+    # If num = res + bit at any point of the process, the number is a perfect square
+    je perfect         
+    subq %rbx, %r12
+    rrmovq %rax, %rdx
+else:
+    addq %rbx, %r12
+mrLoop:                     # This loop moves a number one bit to right
+    rrmovq %rcx, %rdi
+    call biggestBit
+    irmovq $1, %r8
+    subq %r8, %rsi
+    jle mrBreak
+    addq %r8, %rsi
+    subq %rsi, %rcx
+    rrmovq %rsi, %rdi
+    call bitToRight
+    addq %rsi, %rdx
+    jmp mrLoop
+mrBreak:
+    rrmovq %rdx, %rcx
+    irmovq $1, %rdi
+    irmovq $4, %rsi
+    irmovq $3, %r9
+    subq %r9, %rax
+    jle finish
+    addq %r9, %rax
+    rrmovq %rax, %rbx
+loop3: 
+    subq %rbx, %rdi
+    je loop2
+    addq %rbx, %rdi
+    rrmovq %rdi, %rax
+    call multiply
+    irmovq $4, %rsi
+    jmp loop3
+finish:                     # If finish is reached, number was not a perfect square
+    rrmovq %r13, %r12
+    ret
+perfect:                    # Number was a perfect square. r12 is set to 0
+    irmovq $0, %r12
+    ret
+    
+# Subprogram that moves a 2^n value one bit to the right
+bitToRight:
+    irmovq $1, %r8
+    irmovq $0, %rsi
+bLoop:
+    subq %r8, %rdi
+    jle bBreak
+    addq %r8, %rdi
+    rrmovq %r8, %rsi
+    addq %r8, %r8
+    jmp bLoop    
+bBreak:
+    ret
+    
+# Subprogram that calculates the biggest 2^n value less or equal to rdi
+biggestBit:
+    irmovq $0x1000, %r8     # If the number is big, start looping from 0x1000 instead of 1
+    irmovq $0, %rsi
+    subq %r8, %rdi
+    jge bigBig
+    addq %r8, %rdi
+    irmovq $1, %r8
+    jmp bigLoop
+bigBig:
+    addq %r8, %rdi    
+bigLoop:
+    subq %r8, %rdi
+    jl bigBreak
+    addq %r8, %rdi
+    rrmovq %r8, %rsi
+    addq %r8, %r8
+    jmp bigLoop    
+bigBreak:
+    ret
+    
+# Subprogram that counts how many zeros is behind the msb in 2^n value
+countZeros:
+    irmovq $0x1000, %r8     # If the number is big, start looping from 0x1000 instead of 1
+    irmovq $0, %r9
+    irmovq $1, %r10
+    subq %r8, %rdi
+    jg czBig
+    addq %r8, %rdi
+    irmovq $1, %r8
+    jmp czLoop
+czBig:
+    addq %r8, %rdi
+    irmovq $12, %r9
+czLoop:
+    subq %r8, %rdi
+    jle czBreak
+    addq %r8, %rdi
+    addq %r10, %r9
+    addq %r8, %r8
+    jmp czLoop
+czBreak:
+    rrmovq %r9, %rdi
+    ret
+    
+# Subprogram that moves a value one bit to right rsi times
+moveToLeft:
+    subq %r8, %rsi
+    jl mtlBreak
+    addq %rdi, %rdi
+    jmp moveToLeft
+mtlBreak:
+    ret
+
+# Simple multiplication subrogram used when the other multiplicant is known to be small
+multiply:
+    andq %rsi, %rsi
+    je zero
+    irmovq $0, %r8
+    irmovq $1, %r9
+mLoop:
+    addq %rdi, %r8
+    subq %r9, %rsi
+    jne mLoop
+    rrmovq %r8, %rdi
+    ret
+zero:
+    irmovq $0, %rdi
+    ret
+
+# Simple subtraction subprogram
+subtract:
+    irmovq $0, %r8
+sLoop:
+    subq %rsi, %rdi
+    jl sBreak
+    irmovq $1, %r9
+    addq %r9, %r8
+    jmp sLoop
+sBreak:
+    rrmovq %r8, %rdi
+    ret
+
+.pos 0x700
+array:
+
+.pos 0x1200
+stack:
+

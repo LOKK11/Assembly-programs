@@ -1,0 +1,13 @@
+main:
+    irmovq $1, %rbx
+    irmovq $0x1000, %rax
+loop:
+    subq %rax, %r13
+    jle break
+    addq %rbx, %rcx
+    jmp loop
+break:
+    addq %rax, %r13
+    addq %rcx, %r14
+    halt
+    
